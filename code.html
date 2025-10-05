@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PowerDash — Optimized Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #0e1628;
+      --panel: rgba(255, 255, 255, 0.05);
+      --accent: #6366f1;
+      --accent-2: #06b6d4;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --radius: 14px;
+      --gap: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      background: linear-gradient(180deg, #0a1120, #0d1528);
+      color: var(--text);
+    }
+    .app { display: grid; grid-template-columns: 250px 1fr; gap: var(--gap); padding: 20px; min-height: 100vh; }
+    .sidebar { background: var(--panel); border-radius: var(--radius); padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); position: sticky; top: 20px; height: fit-content; }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .logo { background: linear-gradient(135deg, var(--accent), var(--accent-2)); width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; }
+    .nav a { display: block; color: var(--muted); text-decoration: none; padding: 10px; border-radius: var(--radius); transition: all 0.2s ease; }
+    .nav a:hover { background: rgba(255,255,255,0.07); color: #fff; transform: translateX(5px); }
+    .main { display: flex; flex-direction: column; gap: var(--gap); }
+    .topbar { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: linear-gradient(180deg, #0e1628, #111b31); padding: 10px 0; z-index: 2; }
+    .controls button { background: var(--panel); border: none; color: var(--text); padding: 8px 14px; border-radius: var(--radius); cursor: pointer; transition: all 0.2s ease; }
+    .controls .primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: #fff; }
+    .controls button:hover { transform: scale(1.05); opacity: 0.9; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--gap); }
+    .card { background: var(--panel); padding: 18px; border-radius: var(--radius); box-shadow: 0 4px 16px rgba(0,0,0,0.5); transition: transform 0.3s ease; }
+    .card:hover { transform: translateY(-4px); }
+    .kpi-value { font-size: 22px; font-weight: 700; }
+    .kpi-label { color: var(--muted); font-size: 13px; }
+    .grid, .bottom, .extra-section { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+    table { width: 100%; border-collapse: collapse; color: var(--text); font-size: 14px; }
+    th, td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    th { color: var(--muted); }
+    footer { text-align: center; color: var(--muted); padding: 20px; margin-top: 40px; font-size: 13px; border-top: 1px solid rgba(255,255,255,0.1); }
+    @media (max-width: 980px) { .app { grid-template-columns: 1fr; } .grid, .bottom, .extra-section { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">PB</div>
+        <div>
+          <div style="font-weight:700;">PowerDash</div>
+          <div style="font-size:12px;color:var(--muted)">Analytics</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#overview">Overview</a>
+        <a href="#sales">Sales</a>
+        <a href="#growth">Growth</a>
+        <a href="#customers">Customers</a>
+        <a href="#products">Products</a>
+      </nav>
+      <hr style="border:none;height:1px;background:rgba(255,255,255,0.1);margin:20px 0;">
+      <div style="font-size:13px;color:var(--muted)">Filters</div>
+      <select id="regionSelect" style="margin-top:10px;padding:8px;width:100%;border-radius:8px;">
+        <option>All Regions</option>
+        <option>North</option>
+        <option>South</option>
+        <option>East</option>
+        <option>West</option>
+      </select>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <h2>Sales Dashboard</h2>
+          <small style="color:var(--muted)">Interactive analytics overview</small>
+        </div>
+        <div class="controls">
+          <button id="refreshBtn">Refresh</button>
+          <button id="exportBtn" class="primary">Export CSV</button>
+        </div>
+      </div>
+      <section class="kpis" id="overview">
+        <div class="card"><div class="kpi-label">Revenue</div><div class="kpi-value" id="kpiRevenue">₹0</div></div>
+        <div class="card"><div class="kpi-label">Orders</div><div class="kpi-value" id="kpiOrders">0</div></div>
+        <div class="card"><div class="kpi-label">Avg Order Value</div><div class="kpi-value" id="kpiAOV">₹0</div></div>
+        <div class="card"><div class="kpi-label">Customers</div><div class="kpi-value" id="kpiCustomers">0</div></div>
+      </section>
+      <section class="grid" id="sales">
+        <div class="card"><canvas id="lineChart" height="320"></canvas></div>
+        <div class="card"><canvas id="doughnutChart" height="320"></canvas></div>
+      </section>
+      <section class="bottom" id="orders">
+        <div class="card"><canvas id="barChart" height="250"></canvas></div>
+        <div class="card">
+          <h4>Recent Orders</h4>
+          <table>
+            <thead><tr><th>Order #</th><th>Customer</th><th>Value</th><th>Date</th></tr></thead>
+            <tbody id="ordersTable"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="extra-section" id="growth">
+        <div class="card"><canvas id="growthChart" height="300"></canvas></div>
+        <div class="card"><canvas id="customerAgeChart" height="300"></canvas></div>
+      </section>
+      <section id="products">
+        <div class="card">
+          <h4>Top Performing Products</h4>
+          <table>
+            <thead><tr><th>Product</th><th>Sales</th><th>Growth</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Product A</td><td>₹120,000</td><td>+12%</td><td style="color:#10b981;">Excellent</td></tr>
+              <tr><td>Product B</td><td>₹90,000</td><td>+8%</td><td style="color:#22d3ee;">Good</td></tr>
+              <tr><td>Product C</td><td>₹60,000</td><td>-3%</td><td style="color:#f59e0b;">Average</td></tr>
+              <tr><td>Product D</td><td>₹45,000</td><td>-10%</td><td style="color:#ef4444;">Low</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <footer>
+        <p>📊 PowerDash Analytics — Built with HTML, CSS & JS | Inspired by Power BI</p>
+      </footer>
+    </main>
+  </div>
+  <script>
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'];
+    const revenue = months.map(()=>Math.floor(100000 + Math.random()*100000));
+    const orders = months.map(()=>Math.floor(500 + Math.random()*500));
+    const customers = months.map(()=>Math.floor(300 + Math.random()*200));
+    const formatCurrency = n => '₹' + n.toLocaleString('en-IN');
+    function updateKPIs(){
+      const totalRev = revenue.reduce((a,b)=>a+b,0);
+      const totalOrders = orders.reduce((a,b)=>a+b,0);
+      const avg = Math.round(totalRev / totalOrders);
+      const cust = customers.slice(-1)[0];
+      document.getElementById("kpiRevenue").innerText = formatCurrency(totalRev);
+      document.getElementById("kpiOrders").innerText = totalOrders;
+      document.getElementById("kpiAOV").innerText = formatCurrency(avg);
+      document.getElementById("kpiCustomers").innerText = cust;
+    }
+    function renderCharts(){
+      new Chart(document.getElementById("lineChart"), {
+        type: "line",
+        data: { labels: months, datasets: [{ label:"Revenue", data: revenue, borderColor:"#6366f1", backgroundColor:"rgba(99,102,241,0.15)", fill:true, tension:0.4 }] },
+        options: { plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+      });
+      new Chart(document.getElementById("doughnutChart"), {
+        type: "doughnut",
+        data: { labels: ["North","South","East","West"], datasets: [{ data:[40,30,20,10], backgroundColor:["#6366f1","#06b6d4","#10b981","#f59e0b"] }] },
+        options: { plugins:{legend:{position:"bottom",labels:{color:"#cbd5e1"}}} }
+      });
+      new Chart(document.getElementById("barChart"), {
+        type:"bar",
+        data:{ labels:["Product A","B","C","D"], datasets:[{ data:[200,150,100,80], backgroundColor:"#06b6d4", borderRadius:8 }]},
+        options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
+      });
+      new Chart(document.getElementById("growthChart"), {
+        type:"bar",
+        data:{
+          labels: months,
+          datasets:[
+            { type:"line", label:"Revenue", data:revenue, borderColor:"#6366f1", fill:false },
+            { type:"bar", label:"Orders", data:orders, backgroundColor:"#06b6d4" }
+          ]
+        },
+        options:{ plugins:{legend:{labels:{color:"#cbd5e1"}}}, scales:{x:{ticks:{color:"#cbd5e1"}},y:{ticks:{color:"#cbd5e1"},beginAtZero:true}}}
+      });
+      new Chart(document.getElementById("customerAgeChart"), {
+        type:"polarArea",
+        data:{ labels:["18-25","26-35","36-45","46-60","60+"], datasets:[{ data:[25,40,20,10,5], backgroundColor:["#6366f1","#06b6d4","#10b981","#f59e0b","#ef4444"] }] },
+        options:{ plugins:{legend:{position:"bottom",labels:{color:"#cbd5e1"}}} }
+      });
+    }
+    function renderTable(){
+      const table = document.getElementById("ordersTable");
+      table.innerHTML = "";
+      for(let i=1;i<=10;i++){
+        const value = Math.floor(2000+Math.random()*10000);
+        const date = `2025-0${(i%9)+1}-15`;
+        table.innerHTML += `<tr><td>#${1000+i}</td><td>Customer ${i}</td><td>${formatCurrency(value)}</td><td>${date}</td></tr>`;
+      }
+    }
+    document.getElementById("refreshBtn").addEventListener("click", ()=>location.reload());
+    document.getElementById("exportBtn").addEventListener("click", ()=>{
+      const csv = [["Order","Customer","Value","Date"]];
+      document.querySelectorAll("#ordersTable tr").forEach(r=>{ csv.push(Array.from(r.children).map(c=>c.innerText)); });
+      const blob = new Blob([csv.map(r=>r.join(",")).join("\n")],{type:"text/csv"});
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download="orders.csv";
+      a.click();
+    });
+    updateKPIs();
+    renderCharts();
+    renderTable();
+  </script>
+</body>
+</html>
